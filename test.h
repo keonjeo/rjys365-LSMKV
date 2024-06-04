@@ -8,40 +8,40 @@
 
 class Test {
 protected:
-	static const std::string not_found;
+	static const std::string not_found_result;
 
-	uint64_t nr_tests;
-	uint64_t nr_passed_tests;
-	uint64_t nr_phases;
-	uint64_t nr_passed_phases;
+	uint64_t nth_test_cases;
+	uint64_t nth_passed_test_cases;
+	uint64_t nth_phases;
+	uint64_t nth_passed_phases;
 
-#define EXPECT(exp, got) expect<decltype(got)>((exp), (got), __FILE__, __LINE__)
+#define EXPECT(exp_value, got_value) expect<decltype(got_value)>((exp_value), (got_value), __FILE__, __LINE__)
 	template<typename T>
-	void expect(const T &exp, const T &got,
+	void expect(const T &exp_value, const T &got_value,
 		    const std::string &file, int line)
 	{
-		++nr_tests;
-		if (exp == got) {
-			++nr_passed_tests;
+		++nth_test_cases;
+		if (exp_value == got_value) {
+			++nth_passed_test_cases;
 			return;
 		}
 		if (verbose) {
 			std::cerr << "TEST Error @" << file << ":" << line;
-			std::cerr << ", expected " << exp;
-			std::cerr << ", got " << got << std::endl;
+			std::cerr << ", expected value " << exp_value;
+			std::cerr << ", got value " << got_value << std::endl;
 		}
 	}
 
 	void phase(void)
 	{
 		// Report
-		std::cout << "  Phase " << (nr_phases+1) << ": ";
-		std::cout << nr_passed_tests << "/" << nr_tests << " ";
+		std::cout << "  Phase " << (nth_phases+1) << ": ";
+		std::cout << nth_passed_test_cases << "/" << nth_test_cases << " ";
 
 		// Count
-		++nr_phases;
-		if (nr_tests == nr_passed_tests) {
-			++nr_passed_phases;
+		++nth_phases;
+		if (nth_test_cases == nth_passed_test_cases) {
+			++nth_passed_phases;
 			std::cout << "[PASS]" << std::endl;
 		} else
 			std::cout << "[FAIL]" << std::endl;
@@ -49,18 +49,18 @@ protected:
 		std::cout.flush();
 
 		// Reset
-		nr_tests = 0;
-		nr_passed_tests = 0;
+		nth_test_cases = 0;
+		nth_passed_test_cases = 0;
 	}
 
 	void report(void)
 	{
-		std::cout << nr_passed_phases << "/" << nr_phases << " passed.";
+		std::cout << nth_passed_phases << "/" << nth_phases << " passed.";
 		std::cout << std::endl;
 		std::cout.flush();
 
-		nr_phases = 0;
-		nr_passed_phases = 0;
+		nth_phases = 0;
+		nth_passed_phases = 0;
 	}
 
 	class KVStore store;
@@ -69,10 +69,10 @@ protected:
 public:
 	Test(const std::string &dir, bool v=true): store(dir), verbose(v)
 	{
-		nr_tests = 0;
-		nr_passed_tests = 0;
-		nr_phases = 0;
-		nr_passed_phases = 0;
+		nth_test_cases = 0;
+		nth_passed_test_cases = 0;
+		nth_phases = 0;
+		nth_passed_phases = 0;
 	}
 
 	virtual void start_test(void *args = NULL)
@@ -81,4 +81,4 @@ public:
 	}
 
 };
-const std::string Test::not_found = "";
+const std::string Test::not_found_result = "";

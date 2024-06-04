@@ -35,7 +35,7 @@ private:
 		for (i = 0; i < max; ++i) {
 			switch (i & 3) {
 			case 0:
-				EXPECT(not_found, store.get(i));
+				EXPECT(not_found_result, store.get(i));
 				store.put(i, std::string(i+1, 't'));
 				break;
 			case 1:
@@ -43,7 +43,7 @@ private:
 				store.put(i, std::string(i+1, 't'));
 				break;
 			case 2:
-				EXPECT(not_found, store.get(i));
+				EXPECT(not_found_result, store.get(i));
 				break;
 			case 3:
 				EXPECT(std::string(i+1, 's'), store.get(i));
@@ -102,7 +102,7 @@ private:
 				EXPECT(std::string(i+1, 't'), store.get(i));
 				break;
 			case 2:
-				EXPECT(not_found, store.get(i));
+				EXPECT(not_found_result, store.get(i));
 				break;
 			case 3:
 				EXPECT(std::string(i+1, 's'), store.get(i));

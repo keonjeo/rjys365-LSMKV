@@ -14,11 +14,11 @@ private:
 		uint64_t i;
 
 		// Test a single key
-		EXPECT(not_found, store.get(1));
+		EXPECT(not_found_result, store.get(1));
 		store.put(1, "SE");
 		EXPECT("SE", store.get(1));
 		EXPECT(true, store.del(1));
-		EXPECT(not_found, store.get(1));
+		EXPECT(not_found_result, store.get(1));
 		EXPECT(false, store.del(1));
 
 		phase();
@@ -51,7 +51,7 @@ private:
 		while(ap != list_ans.end()) {
 			if (sp == list_stu.end()) {
 				EXPECT((*ap).first, -1);
-				EXPECT((*ap).second, not_found);
+				EXPECT((*ap).second, not_found_result);
 				ap++;
 			}
 			else {
@@ -69,7 +69,7 @@ private:
 			EXPECT(true, store.del(i));
 
 		for (i = 0; i < max; ++i)
-			EXPECT((i & 1) ? std::string(i+1, 's') : not_found,
+			EXPECT((i & 1) ? std::string(i+1, 's') : not_found_result,
 			       store.get(i));
 
 		for (i = 1; i < max; ++i)
