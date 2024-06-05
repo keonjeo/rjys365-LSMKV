@@ -1,9 +1,0 @@
-.DS_Store
-.vscode/*
-data/*
-*.o
-correctness
-persistence
-benchmark1
-benchmark2
-benchmark3

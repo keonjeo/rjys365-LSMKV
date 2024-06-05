@@ -1,12 +1,11 @@
-#include "kvstore.h"
-
 #include <algorithm>
 #include <string>
 #include <vector>
 
-#include "Level.h"
-#include "file_ops.h"
-#include "utils.h"
+#include "header/Level.h"
+#include "header/file_ops.h"
+#include "header/utils.h"
+#include "header/kvstore.h"
 
 KVStore::KVStore(const std::string &dir) : KVStoreAPI(dir), dir(dir) {
   config.loadConfig(lsmkv_constants::CONFIG_FILENAME);
@@ -29,13 +28,11 @@ KVStore::KVStore(const std::string &dir) : KVStoreAPI(dir), dir(dir) {
       utils::scanDir(levelPath, level_filenames);
       for (const auto &sstFilename : level_filenames) {
         std::string file_path = levelPath + "/" + sstFilename;
-        // std::cout<<"caching"<<file_path<<std::endl;
         if (!file_ops::isFile(file_path) ||
             sstFilename.substr(sstFilename.length() - 4) != ".sst") {
           throw std::runtime_error(
               "Unexpected file in kvstore level directory");
         }
-        // auto sst_id=std::stoi(sstFilename.substr(0,sstFilename.length()-4));
         auto timestamp = levels[level_id].addExistingSSTable(file_path);
         this->maxFileNo = std::max(
             this->maxFileNo,
@@ -44,7 +41,6 @@ KVStore::KVStore(const std::string &dir) : KVStoreAPI(dir), dir(dir) {
     }
   } else {
     utils::mkdir(dir.c_str());
-    // levels are left empty.
   }
 }
 

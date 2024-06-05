@@ -7,7 +7,8 @@
 
 #include "BloomFilter.h"
 #include "file_ops.h"
-#include "kvstore_exceptions.h"
+#include "kvstore_errors.h"
+
 struct SSTable {
   std::string filename = "";
   static constexpr ssize_t HEADER_SIZE = 32;
@@ -89,7 +90,7 @@ struct SSTable {
 
   void loadData() {
     // should be called after cache is loaded
-    if (filename == "") throw new EmptyFileNameException();
+    if (filename == "") throw new EmptyFileNameError();
     std::fstream in;
     in.open(filename, std::ios::in | std::ios::binary);
     in.seekg(HEADER_SIZE + 10240ul +
@@ -113,7 +114,7 @@ struct SSTable {
   }
 
   void loadCache() {
-    if (filename == "") throw new EmptyFileNameException();
+    if (filename == "") throw new EmptyFileNameError();
     std::fstream in;
     in.open(filename, std::ios::in | std::ios::binary);
     in.seekg(0);
@@ -135,7 +136,7 @@ struct SSTable {
 
   bool findWithoutCache(uint64_t key, std::string &result) {
     // try to find the value only knowing the filename.
-    if (filename == "") throw new EmptyFileNameException();
+    if (filename == "") throw new EmptyFileNameError();
     std::fstream in;
     in.open(filename, std::ios::in | std::ios::binary);
     uint64_t count, minKey, maxKey;
@@ -176,7 +177,7 @@ struct SSTable {
   }
 
   bool findWithCache(uint64_t key, std::string &result, bool useBloomFilter) {
-    if (filename == "") throw new EmptyFileNameException();
+    if (filename == "") throw new EmptyFileNameError();
     if (useBloomFilter && !bloomFilter.get(key)) return false;
     result = "";
     if (key < minKey || key > maxKey) {
