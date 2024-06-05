@@ -32,7 +32,6 @@ class SkipListNode{
 template<class Key,class Value>
 class SkipList{
     private:
-        //static constexpr int MAX_LEVEL=32;
         const double GROW_THRESHOLD;
         int siz=0,level=0;
         std::mt19937 rgen;
@@ -44,7 +43,7 @@ class SkipList{
         inline int rand_level(){
             int lv=1;
             while(ok_to_grow())lv++;
-            return std::min(lv,SKIPLIST_MAX_LEVEL);//should not exceed the limit
+            return std::min(lv,SKIPLIST_MAX_LEVEL);
         }
 
     public:
@@ -65,23 +64,7 @@ class SkipList{
                 delete tail;
             }
         }
-        void clear(){
-            if(head!=nullptr){
-                SkipListNode<Key,Value> *tmpnext,*tmpcur=head;
-                while(tmpcur!=tail){
-                    tmpnext=tmpcur->forward[0];
-                    delete tmpcur;
-                    tmpcur=tmpnext;
-                }
-                delete tail;
-            }
-            std::random_device rdev;
-            rgen.seed(rdev());
-            tail=new SkipListNode<Key,Value>(std::numeric_limits<Key>::max(),Value(),0);
-            head=new SkipListNode<Key,Value>(std::numeric_limits<Key>::max(),Value(),SKIPLIST_MAX_LEVEL,tail);
-            siz=0;
-            level=0;
-        }
+
 
         void insert(const Key &k,Value v){
             SkipListNode<Key,Value> *update[SKIPLIST_MAX_LEVEL+1];
@@ -101,11 +84,11 @@ class SkipList{
 
             int lv=rand_level();
             if(lv>level){
-                lv=++level;//grow, lv=new max level
+                lv=++level;
                 update[lv]=head;
             }
 
-            SkipListNode<Key,Value> *new_node=new SkipListNode<Key,Value>(k,v,lv);//the forward will be updated later
+            SkipListNode<Key,Value> *new_node=new SkipListNode<Key,Value>(k,v,lv);
             for(int i=lv;i>=0;i--){
                 cur_ptr=update[i];
                 new_node->forward[i]=cur_ptr->forward[i];
@@ -116,7 +99,7 @@ class SkipList{
         }
 
         Value *at(const Key &k,int *steps=nullptr) {
-            int cnt=0;//bool ret=true;
+            int cnt=0;
             SkipListNode<Key,Value> *cur_ptr=head;
             for(int i=level;i>=0;i--){
                 while(cur_ptr->forward[i]!=nullptr&&cur_ptr->forward[i]->key<k){
@@ -124,7 +107,6 @@ class SkipList{
                     cnt++;
                 }
             }
-            //cur_ptr->key<k
             cur_ptr=cur_ptr->forward[0];
             cnt++;
             if(steps!=nullptr)*steps=cnt;
@@ -133,6 +115,24 @@ class SkipList{
         }
 
         inline int size(){return this->siz;}
+
+        void clear(){
+            if(head!=nullptr){
+                SkipListNode<Key,Value> *tmpnext,*tmpcur=head;
+                while(tmpcur!=tail){
+                    tmpnext=tmpcur->forward[0];
+                    delete tmpcur;
+                    tmpcur=tmpnext;
+                }
+                delete tail;
+            }
+            std::random_device rdev;
+            rgen.seed(rdev());
+            tail=new SkipListNode<Key,Value>(std::numeric_limits<Key>::max(),Value(),0);
+            head=new SkipListNode<Key,Value>(std::numeric_limits<Key>::max(),Value(),SKIPLIST_MAX_LEVEL,tail);
+            siz=0;
+            level=0;
+        }
 
         class iterator{
         friend class SkipList;

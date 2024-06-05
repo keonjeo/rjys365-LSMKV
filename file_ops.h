@@ -2,30 +2,29 @@
 
 #include<string>
 #include<sys/stat.h>
-//#include<unistd.h>
 
 namespace file_ops{
-    inline bool isFile(const std::string &path) {
-        struct stat buf;
-        if (stat(path.c_str(), &buf) != 0) {
+    inline bool isFile(const std::string &file_path) {
+        struct stat stat_buf;
+        if (stat(file_path.c_str(), &stat_buf) != 0) {
             return false;
         }
-        return S_ISREG(buf.st_mode);
+        return S_ISREG(stat_buf.st_mode);
     }
 
-    inline bool isDirectory(const std::string &path) {
-        struct stat buf;
-        if (stat(path.c_str(), &buf) != 0) {
-            return false;
-        }
-        return S_ISDIR(buf.st_mode);
-    }
-
-    inline off_t getFileSize(const std::string &path) {
-        struct stat buf;
-        if (stat(path.c_str(), &buf) != 0) {
+    inline off_t getFileSize(const std::string &file_path) {
+        struct stat stat_buf;
+        if (stat(file_path.c_str(), &stat_buf) != 0) {
             return -1;
         }
-        return buf.st_size;
+        return stat_buf.st_size;
+    }
+
+    inline bool isDir(const std::string &file_path) {
+        struct stat stat_buf;
+        if (stat(file_path.c_str(), &stat_buf) != 0) {
+            return false;
+        }
+        return S_ISDIR(stat_buf.st_mode);
     }
 }

@@ -8,6 +8,7 @@
 #include "BloomFilter.h"
 #include "file_ops.h"
 #include "kvstore_exceptions.h"
+
 struct SSTable {
   std::string filename = "";
   static constexpr ssize_t HEADER_SIZE = 32;
@@ -21,6 +22,20 @@ struct SSTable {
       data = new uint8_t[dataSize]();
     else
       data = nullptr;
+  }
+
+  SSTable(SSTable &&right)
+      : filename(std::move(right.filename)),
+        dataSize(right.dataSize),
+        timestamp(right.timestamp),
+        count(right.count),
+        minKey(right.minKey),
+        maxKey(right.maxKey),
+        bloomFilter(std::move(right.bloomFilter)),
+        mapping(std::move(right.mapping)),
+        data(right.data) {
+    right.dataSize = 0;
+    right.data = nullptr;
   }
   SSTable(const SSTable &right)
       : filename(right.filename),
@@ -37,59 +52,10 @@ struct SSTable {
     } else
       data = nullptr;
   }
-  SSTable(SSTable &&right)
-      : filename(std::move(right.filename)),
-        dataSize(right.dataSize),
-        timestamp(right.timestamp),
-        count(right.count),
-        minKey(right.minKey),
-        maxKey(right.maxKey),
-        bloomFilter(std::move(right.bloomFilter)),
-        mapping(std::move(right.mapping)),
-        data(right.data) {
-    right.dataSize = 0;
-    right.data = nullptr;
-  }
   ~SSTable() { delete[] data; }
 
-  void toFile(const std::string &filename) {
-    uint64_t byteCnt = 0;
-    this->filename = filename;
-    if (data == nullptr) return;
-    std::fstream out;
-    out.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
-    out.seekp(0);
-    out.write(reinterpret_cast<const char *>(&timestamp), sizeof(uint64_t));
-    byteCnt += sizeof(uint64_t);
-    out.write(reinterpret_cast<const char *>(&count), sizeof(uint64_t));
-    byteCnt += sizeof(uint64_t);
-    out.write(reinterpret_cast<const char *>(&minKey), sizeof(uint64_t));
-    byteCnt += sizeof(uint64_t);
-    out.write(reinterpret_cast<const char *>(&maxKey), sizeof(uint64_t));
-    byteCnt += sizeof(uint64_t);
-    out.write(reinterpret_cast<const char *>(bloomFilter.getDataPtr()),
-              BloomFilter::SIZE * sizeof(bool));
-    byteCnt += BloomFilter::SIZE * sizeof(bool);
-    for (const auto &pair : mapping) {
-      out.write(reinterpret_cast<const char *>(&pair.first), sizeof(uint64_t));
-      out.write(reinterpret_cast<const char *>(&pair.second), sizeof(uint64_t));
-      byteCnt += sizeof(uint64_t) + sizeof(uint64_t);
-    }
-    out.write(reinterpret_cast<const char *>(data), dataSize * sizeof(char));
-    byteCnt += dataSize * sizeof(char);
-    out.flush();
-    out.close();
-  }
-
-  void freeData() {
-    delete[] data;
-    data = nullptr;
-    dataSize = 0;
-  }
-
   void loadData() {
-    // should be called after cache is loaded
-    if (filename == "") throw new EmptyFileNameException();
+    if (filename == "") throw new EmptyFileNameError();
     std::fstream in;
     in.open(filename, std::ios::in | std::ios::binary);
     in.seekg(HEADER_SIZE + 10240ul +
@@ -105,37 +71,10 @@ struct SSTable {
     in.close();
   }
 
-  static inline uint64_t calcPos(uint64_t keyNo) {
-    // keyNo is 0-indexed
-    constexpr uint64_t minKeyPos =
-        4ul * sizeof(uint64_t) + BloomFilter::SIZE * sizeof(bool);
-    return minKeyPos + keyNo * (sizeof(uint64_t) + sizeof(uint64_t));
-  }
-
-  void loadCache() {
-    if (filename == "") throw new EmptyFileNameException();
-    std::fstream in;
-    in.open(filename, std::ios::in | std::ios::binary);
-    in.seekg(0);
-    in.read(reinterpret_cast<char *>(&this->timestamp), sizeof(uint64_t));
-    in.read(reinterpret_cast<char *>(&this->count), sizeof(uint64_t));
-    in.read(reinterpret_cast<char *>(&this->minKey), sizeof(uint64_t));
-    in.read(reinterpret_cast<char *>(&this->maxKey), sizeof(uint64_t));
-    in.read(reinterpret_cast<char *>(this->bloomFilter.getDataPtr()),
-            BloomFilter::SIZE * sizeof(bool));
-    this->mapping.clear();
-    for (uint64_t i = 0; i < this->count; i++) {
-      uint64_t key, pos;
-      in.read(reinterpret_cast<char *>(&key), sizeof(uint64_t));
-      in.read(reinterpret_cast<char *>(&pos), sizeof(uint64_t));
-      this->mapping.push_back(std::make_pair(key, pos));
-    }
-    in.close();
-  }
-
+  
   bool findWithoutCache(uint64_t key, std::string &result) {
     // try to find the value only knowing the filename.
-    if (filename == "") throw new EmptyFileNameException();
+    if (filename == "") throw new EmptyFileNameError();
     std::fstream in;
     in.open(filename, std::ios::in | std::ios::binary);
     uint64_t count, minKey, maxKey;
@@ -175,8 +114,80 @@ struct SSTable {
     return false;
   }
 
+  void toFile(const std::string &filename) {
+    uint64_t byteCnt = 0;
+    this->filename = filename;
+    if (data == nullptr) return;
+    std::fstream out;
+    out.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
+    out.seekp(0);
+    out.write(reinterpret_cast<const char *>(&timestamp), sizeof(uint64_t));
+    byteCnt += sizeof(uint64_t);
+    out.write(reinterpret_cast<const char *>(&count), sizeof(uint64_t));
+    byteCnt += sizeof(uint64_t);
+    out.write(reinterpret_cast<const char *>(&minKey), sizeof(uint64_t));
+    byteCnt += sizeof(uint64_t);
+    out.write(reinterpret_cast<const char *>(&maxKey), sizeof(uint64_t));
+    byteCnt += sizeof(uint64_t);
+    out.write(reinterpret_cast<const char *>(bloomFilter.getDataPtr()),
+              BloomFilter::SIZE * sizeof(bool));
+    byteCnt += BloomFilter::SIZE * sizeof(bool);
+    for (const auto &pair : mapping) {
+      out.write(reinterpret_cast<const char *>(&pair.first), sizeof(uint64_t));
+      out.write(reinterpret_cast<const char *>(&pair.second), sizeof(uint64_t));
+      byteCnt += sizeof(uint64_t) + sizeof(uint64_t);
+    }
+    out.write(reinterpret_cast<const char *>(data), dataSize * sizeof(char));
+    byteCnt += dataSize * sizeof(char);
+    out.flush();
+    out.close();
+  }
+
+  void freeData() {
+    delete[] data;
+    data = nullptr;
+    dataSize = 0;
+  }
+
+  bool find(uint64_t key, std::string &result, bool useCache,
+            bool useBloomFilter) {
+    if (useCache) {
+      return findWithCache(key, result, useBloomFilter);
+    } else {
+      return findWithoutCache(key, result);
+    }
+  }
+
+  static inline uint64_t calcPos(uint64_t keyNo) {
+    // keyNo is 0-indexed
+    constexpr uint64_t minKeyPos =
+        4ul * sizeof(uint64_t) + BloomFilter::SIZE * sizeof(bool);
+    return minKeyPos + keyNo * (sizeof(uint64_t) + sizeof(uint64_t));
+  }
+
+  void loadCache() {
+    if (filename == "") throw new EmptyFileNameError();
+    std::fstream in;
+    in.open(filename, std::ios::in | std::ios::binary);
+    in.seekg(0);
+    in.read(reinterpret_cast<char *>(&this->timestamp), sizeof(uint64_t));
+    in.read(reinterpret_cast<char *>(&this->count), sizeof(uint64_t));
+    in.read(reinterpret_cast<char *>(&this->minKey), sizeof(uint64_t));
+    in.read(reinterpret_cast<char *>(&this->maxKey), sizeof(uint64_t));
+    in.read(reinterpret_cast<char *>(this->bloomFilter.getDataPtr()),
+            BloomFilter::SIZE * sizeof(bool));
+    this->mapping.clear();
+    for (uint64_t i = 0; i < this->count; i++) {
+      uint64_t key, pos;
+      in.read(reinterpret_cast<char *>(&key), sizeof(uint64_t));
+      in.read(reinterpret_cast<char *>(&pos), sizeof(uint64_t));
+      this->mapping.push_back(std::make_pair(key, pos));
+    }
+    in.close();
+  }
+
   bool findWithCache(uint64_t key, std::string &result, bool useBloomFilter) {
-    if (filename == "") throw new EmptyFileNameException();
+    if (filename == "") throw new EmptyFileNameError();
     if (useBloomFilter && !bloomFilter.get(key)) return false;
     result = "";
     if (key < minKey || key > maxKey) {
@@ -208,14 +219,5 @@ struct SSTable {
       }
     }
     return false;
-  }
-
-  bool find(uint64_t key, std::string &result, bool useCache,
-            bool useBloomFilter) {
-    if (useCache) {
-      return findWithCache(key, result, useBloomFilter);
-    } else {
-      return findWithoutCache(key, result);
-    }
   }
 };
