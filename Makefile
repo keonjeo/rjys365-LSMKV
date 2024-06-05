@@ -2,17 +2,16 @@
 LINK.o = $(LINK.cc)
 CXXFLAGS = -std=c++14 -Wall -g
 
-all: correctness persistence benchmark1 benchmark2 benchmark3
+all: correctness persistence benchmark_test
 
 correctness: kvstore.o correctness.o
+	g++ -o correctness kvstore.o correctness.o -I./header
 
 persistence: kvstore.o persistence.o
+	g++ -o persistence kvstore.o persistence.o -I./header
 
-benchmark1: kvstore.o benchmark1.o
-
-benchmark2: kvstore.o benchmark2.o
-
-benchmark3: kvstore.o benchmark3.o
+benchmark_test: kvstore.o benchmark_test.o
+	g++ -o benchmark_test kvstore.o benchmark_test.o -I./header
 
 clean:
-	-rm -f correctness persistence benchmark1 benchmark2 benchmark3 *.o
+	-rm -f correctness persistence benchmark_test *.o

@@ -7,7 +7,7 @@
 
 #include "BloomFilter.h"
 #include "file_ops.h"
-#include "kvstore_exceptions.h"
+#include "kvstore_errors.h"
 
 struct SSTable {
   std::string filename = "";

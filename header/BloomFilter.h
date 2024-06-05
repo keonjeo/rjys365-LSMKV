@@ -1,5 +1,7 @@
 #pragma once
+
 #include "MurmurHash3.h"
+
 class BloomFilter{
 private:
     bool *data;

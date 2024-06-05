@@ -3,7 +3,9 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+
 #include "Level.h"
+
 class Config{
 private:
     std::map<int,int> layerSize;

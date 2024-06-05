@@ -1,12 +1,11 @@
-#include "kvstore.h"
-
 #include <algorithm>
 #include <string>
 #include <vector>
 
-#include "Level.h"
-#include "file_ops.h"
-#include "utils.h"
+#include "header/kvstore.h"
+#include "header/Level.h"
+#include "header/file_ops.h"
+#include "header/utils.h"
 
 
 void KVStore::saveMemTable() {
@@ -51,7 +50,6 @@ KVStore::KVStore(const std::string &dir) : KVStoreAPI(dir), dir(dir) {
           throw std::runtime_error(
               "Unexpected file in kvstore level directory");
         }
-        auto timestamp = levels[level_id].addExistingSSTable(file_path);
         this->maxFileNo = std::max(
             this->maxFileNo,
             std::stoul(sstFilename.substr(0, sstFilename.length() - 4)));
@@ -63,6 +61,24 @@ KVStore::KVStore(const std::string &dir) : KVStoreAPI(dir), dir(dir) {
 }
 
 KVStore::~KVStore() { saveMemTable(); }
+
+
+std::string KVStore::get(uint64_t key) {
+  auto value = memTable.get(key);
+  if (value == "~DELETED~") return "";
+  if (value != "") return value;
+  for (size_t levelId = 0; levelId < levels.size(); levelId++) {
+    std::string value;
+    if (levels[levelId].find(key, value)) {
+      if (value == "~DELETED~") return "";
+      return value;
+    }
+  }
+  return "";
+}
+
+
+void KVStore::scan(uint64_t key1, uint64_t key2,std::list<std::pair<uint64_t, std::string> > &list) {}
 
 void KVStore::compact() {
   uint64_t currentLevel = 0;
@@ -94,6 +110,22 @@ void KVStore::putDiag(uint64_t key, const std::string &s,bool &compact) {
   }
 }
 
+
+std::string KVStore::getDiag(uint64_t key, bool useCache, bool useBloomfilter) {
+  auto value = memTable.get(key);
+  if (value == "~DELETED~") return "";
+  if (value != "") return value;
+  for (size_t levelId = 0; levelId < levels.size(); levelId++) {
+    std::string value;
+    if (levels[levelId].find(key, value, useCache, useBloomfilter)) {
+      if (value == "~DELETED~") return "";
+      return value;
+    }
+  }
+  return "";
+}
+
+
 void KVStore::put(uint64_t key, const std::string &s) {
   bool memTablePutSuccessful = memTable.put(key, s);
   if (!memTablePutSuccessful) {
@@ -103,11 +135,6 @@ void KVStore::put(uint64_t key, const std::string &s) {
   }
 }
 
-bool KVStore::del(uint64_t key) {
-  if (this->get(key) == "") return false;
-  this->put(key, "~DELETED~");
-  return true;
-}
 
 void KVStore::reset() {
   memTable.clear();
@@ -135,34 +162,8 @@ void KVStore::reset() {
   }
 }
 
-
-std::string KVStore::get(uint64_t key) {
-  auto value = memTable.get(key);
-  if (value == "~DELETED~") return "";
-  if (value != "") return value;
-  for (size_t levelId = 0; levelId < levels.size(); levelId++) {
-    std::string value;
-    if (levels[levelId].find(key, value)) {
-      if (value == "~DELETED~") return "";
-      return value;
-    }
-  }
-  return "";
+bool KVStore::del(uint64_t key) {
+  if (this->get(key) == "") return false;
+  this->put(key, "~DELETED~");
+  return true;
 }
-
-std::string KVStore::getDiag(uint64_t key, bool useCache, bool useBloomfilter) {
-  auto value = memTable.get(key);
-  if (value == "~DELETED~") return "";
-  if (value != "") return value;
-  for (size_t levelId = 0; levelId < levels.size(); levelId++) {
-    std::string value;
-    if (levels[levelId].find(key, value, useCache, useBloomfilter)) {
-      if (value == "~DELETED~") return "";
-      return value;
-    }
-  }
-  return "";
-}
-
-
-void KVStore::scan(uint64_t key1, uint64_t key2,std::list<std::pair<uint64_t, std::string> > &list) {}

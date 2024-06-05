@@ -1,24 +1,11 @@
 #include <chrono>
 
-#include "kvstore.h"
+#include "header/kvstore.h"
 
 
 KVStore kvstore("./data");
 constexpr int N=65535;
 
-
-int main() {
-  kvstore.reset();
-
-  test_put_operation();
-  test_get_operation();
-  test_delete_operation();
-
-  test_get_operation_without_bloomfilter();
-  test_get_operation_without_cache_and_bloomfilter();
-
-  return 0;
-}
 
 int test_delete_operation() {
  auto start_time = std::chrono::high_resolution_clock::now();
@@ -101,5 +88,18 @@ int test_get_operation_without_cache_and_bloomfilter() {
   getDuration=std::chrono::duration_cast<std::chrono::milliseconds>(end_time-start_time);
   secondPerGet=(double)getDuration.count()/(double)N;
   std::cout<<"cache and bloomfilter disabled\t"<<secondPerGet<<std::endl;
+  return 0;
+}
+
+int main() {
+  kvstore.reset();
+
+  test_put_operation();
+  test_get_operation();
+  test_delete_operation();
+
+  test_get_operation_without_bloomfilter();
+  test_get_operation_without_cache_and_bloomfilter();
+
   return 0;
 }
